@@ -1,0 +1,39 @@
+name: BCH Alpha Hunter Daily Engine
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-alpha-hunter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install notebook nbconvert pandas numpy scipy openpyxl yfinance requests beautifulsoup4
+
+      - name: Execute Alpha Hunter Notebook
+        run: |
+          jupyter nbconvert \
+            --to notebook \
+            --execute BCH_Alpha_Hunter_Engine_GitHub_Ready.ipynb \
+            --output BCH_Alpha_Hunter_Output.ipynb
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: BCH-Alpha-Hunter-Daily-Reports
+          path: |
+            *.csv
+            *.xlsx
+            BCH_Alpha_Hunter_Output.ipynb

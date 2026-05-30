@@ -5,6 +5,11 @@ on:
     - cron: '0 13 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   run-alpha-hunter:
     runs-on: ubuntu-latest
@@ -40,7 +45,7 @@ jobs:
           with open(path, "w", encoding="utf-8") as f:
               json.dump(nb, f)
 
-          print("Notebook format repaired.")
+          print("Notebook repaired.")
           PY
 
       - name: Execute Alpha Hunter Notebook
@@ -61,63 +66,128 @@ jobs:
             *.json
             *.html
             BCH_Alpha_Hunter_Output.ipynb
+
       - name: Create Dashboard Folder
         run: |
           mkdir -p public
-          cp BCH_Alpha_Hunter_Dashboard.csv public/
-          cp BCH_Alpha_Hunter_Top20.csv public/
 
-           - name: Create Dashboard HTML
+          cp BCH_Alpha_Hunter_Dashboard.csv public/ || true
+          cp BCH_Alpha_Hunter_Top20.csv public/ || true
+          cp BCH_Alpha_Hunter_Results.csv public/ || true
+          cp BCH_Alpha_Hunter_Metadata.json public/ || true
+
+      - name: Create Dashboard HTML
         run: |
           python - <<'PY'
           import pandas as pd
           from pathlib import Path
 
-          dashboard = pd.read_csv("BCH_Alpha_Hunter_Dashboard.csv")
-          top20 = pd.read_csv("BCH_Alpha_Hunter_Top20.csv")
+          dashboard_html = "<p>No dashboard data available.</p>"
+          top20_html = "<p>No Top20 data available.</p>"
 
-          metrics_html = dashboard.to_html(index=False, classes="table")
-          top20_html = top20.to_html(index=False, classes="table")
+          if Path("BCH_Alpha_Hunter_Dashboard.csv").exists():
+              dashboard = pd.read_csv("BCH_Alpha_Hunter_Dashboard.csv")
+              dashboard_html = dashboard.to_html(index=False)
+
+          if Path("BCH_Alpha_Hunter_Top20.csv").exists():
+              top20 = pd.read_csv("BCH_Alpha_Hunter_Top20.csv")
+              top20_html = top20.to_html(index=False)
 
           html = f"""
           <!DOCTYPE html>
           <html>
           <head>
+            <meta charset="utf-8">
             <title>BCH Alpha Hunter Dashboard</title>
+
             <style>
-              body {{ font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; padding:30px; }}
-              h1 {{ color:#38bdf8; }}
-              h2 {{ color:#facc15; margin-top:30px; }}
-              .card {{ background:#111827; padding:20px; border-radius:12px; margin-bottom:25px; box-shadow:0 0 12px rgba(0,0,0,.35); }}
-              .table {{ border-collapse:collapse; width:100%; font-size:14px; }}
-              .table th {{ background:#1e293b; color:#93c5fd; padding:8px; }}
-              .table td {{ border-bottom:1px solid #334155; padding:8px; }}
-              a {{ color:#38bdf8; }}
+              body {{
+                background:#0f172a;
+                color:white;
+                font-family:Arial, sans-serif;
+                padding:30px;
+              }}
+
+              h1 {{
+                color:#38bdf8;
+              }}
+
+              h2 {{
+                color:#facc15;
+              }}
+
+              table {{
+                width:100%;
+                border-collapse:collapse;
+                background:#111827;
+              }}
+
+              th {{
+                background:#1e293b;
+                color:#93c5fd;
+                padding:8px;
+              }}
+
+              td {{
+                border:1px solid #334155;
+                padding:8px;
+              }}
+
+              .card {{
+                background:#111827;
+                padding:20px;
+                margin-bottom:20px;
+                border-radius:10px;
+              }}
+
+              a {{
+                color:#38bdf8;
+              }}
             </style>
           </head>
+
           <body>
+
             <h1>BCH Alpha Hunter Dashboard</h1>
 
             <div class="card">
               <h2>Command Metrics</h2>
-              {metrics_html}
+              {dashboard_html}
             </div>
 
             <div class="card">
-              <h2>Top 20 Alpha Opportunities</h2>
+              <h2>Top 20 Opportunities</h2>
               {top20_html}
             </div>
 
             <div class="card">
-              <h2>Raw Reports</h2>
-              <a href="BCH_Alpha_Hunter_Dashboard.csv">Dashboard CSV</a><br>
-              <a href="BCH_Alpha_Hunter_Top20.csv">Top20 CSV</a>
+              <h2>Downloads</h2>
+
+              <a href="BCH_Alpha_Hunter_Dashboard.csv">
+                Dashboard CSV
+              </a>
+
+              <br><br>
+
+              <a href="BCH_Alpha_Hunter_Top20.csv">
+                Top20 CSV
+              </a>
+
+              <br><br>
+
+              <a href="BCH_Alpha_Hunter_Results.csv">
+                Full Results CSV
+              </a>
             </div>
+
           </body>
           </html>
           """
 
-          Path("public/index.html").write_text(html, encoding="utf-8")
+          Path("public/index.html").write_text(
+              html,
+              encoding="utf-8"
+          )
           PY
 
       - name: Upload GitHub Pages Artifact
@@ -127,16 +197,16 @@ jobs:
 
   deploy:
     needs: run-alpha-hunter
+
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
 
     permissions:
       pages: write
       id-token: write
 
-    environment:
-      name: github-pages
-
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
-            

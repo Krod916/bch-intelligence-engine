@@ -1,0 +1,40 @@
+name: BCH Daily Intelligence Engine
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install notebook nbconvert pandas numpy scipy openpyxl
+
+      - name: Execute BCH Notebook
+        run: |
+          jupyter nbconvert \
+            --to notebook \
+            --execute BCH_Full_Intelligence_Command_System.ipynb \
+            --output BCH_Output.ipynb
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: BCH-Daily-Reports
+          path: |
+            BCH_Command_Action_Queue.csv
+            BCH_Heat_Limit_Report.csv
+            BCH_Cleaned_Positions_With_Greeks.csv
+            BCH_Output.ipynb

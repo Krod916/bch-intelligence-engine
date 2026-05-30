@@ -61,3 +61,46 @@ jobs:
             *.json
             *.html
             BCH_Alpha_Hunter_Output.ipynb
+      - name: Create Dashboard Folder
+        run: |
+          mkdir -p public
+          cp BCH_Alpha_Hunter_Dashboard.csv public/
+          cp BCH_Alpha_Hunter_Top20.csv public/
+
+      - name: Create Dashboard HTML
+        run: |
+          cat > public/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>BCH Alpha Hunter Dashboard</title>
+          </head>
+          <body>
+            <h1>BCH Alpha Hunter Dashboard</h1>
+            <p>Latest BCH Alpha Hunter run.</p>
+            <a href="BCH_Alpha_Hunter_Dashboard.csv">Dashboard CSV</a><br>
+            <a href="BCH_Alpha_Hunter_Top20.csv">Top20 CSV</a>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: run-alpha-hunter
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+            

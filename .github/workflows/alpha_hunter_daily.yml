@@ -67,22 +67,58 @@ jobs:
           cp BCH_Alpha_Hunter_Dashboard.csv public/
           cp BCH_Alpha_Hunter_Top20.csv public/
 
-      - name: Create Dashboard HTML
+           - name: Create Dashboard HTML
         run: |
-          cat > public/index.html << 'EOF'
+          python - <<'PY'
+          import pandas as pd
+          from pathlib import Path
+
+          dashboard = pd.read_csv("BCH_Alpha_Hunter_Dashboard.csv")
+          top20 = pd.read_csv("BCH_Alpha_Hunter_Top20.csv")
+
+          metrics_html = dashboard.to_html(index=False, classes="table")
+          top20_html = top20.to_html(index=False, classes="table")
+
+          html = f"""
           <!DOCTYPE html>
           <html>
           <head>
             <title>BCH Alpha Hunter Dashboard</title>
+            <style>
+              body {{ font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; padding:30px; }}
+              h1 {{ color:#38bdf8; }}
+              h2 {{ color:#facc15; margin-top:30px; }}
+              .card {{ background:#111827; padding:20px; border-radius:12px; margin-bottom:25px; box-shadow:0 0 12px rgba(0,0,0,.35); }}
+              .table {{ border-collapse:collapse; width:100%; font-size:14px; }}
+              .table th {{ background:#1e293b; color:#93c5fd; padding:8px; }}
+              .table td {{ border-bottom:1px solid #334155; padding:8px; }}
+              a {{ color:#38bdf8; }}
+            </style>
           </head>
           <body>
             <h1>BCH Alpha Hunter Dashboard</h1>
-            <p>Latest BCH Alpha Hunter run.</p>
-            <a href="BCH_Alpha_Hunter_Dashboard.csv">Dashboard CSV</a><br>
-            <a href="BCH_Alpha_Hunter_Top20.csv">Top20 CSV</a>
+
+            <div class="card">
+              <h2>Command Metrics</h2>
+              {metrics_html}
+            </div>
+
+            <div class="card">
+              <h2>Top 20 Alpha Opportunities</h2>
+              {top20_html}
+            </div>
+
+            <div class="card">
+              <h2>Raw Reports</h2>
+              <a href="BCH_Alpha_Hunter_Dashboard.csv">Dashboard CSV</a><br>
+              <a href="BCH_Alpha_Hunter_Top20.csv">Top20 CSV</a>
+            </div>
           </body>
           </html>
-          EOF
+          """
+
+          Path("public/index.html").write_text(html, encoding="utf-8")
+          PY
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v3

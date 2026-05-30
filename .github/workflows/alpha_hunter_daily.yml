@@ -20,14 +20,36 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install notebook nbconvert pandas numpy scipy openpyxl yfinance requests beautifulsoup4
+          pip install notebook nbconvert pandas numpy scipy openpyxl yfinance requests beautifulsoup4 lxml html5lib
+
+      - name: Repair Notebook Format
+        run: |
+          python - <<'PY'
+          import json
+
+          path = "BCH_Alpha_Hunter_Engine_GitHub_Ready.ipynb"
+
+          with open(path, "r", encoding="utf-8") as f:
+              nb = json.load(f)
+
+          for cell in nb.get("cells", []):
+              if cell.get("cell_type") == "code":
+                  cell.setdefault("outputs", [])
+                  cell.setdefault("execution_count", None)
+
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(nb, f)
+
+          print("Notebook format repaired.")
+          PY
 
       - name: Execute Alpha Hunter Notebook
         run: |
           jupyter nbconvert \
             --to notebook \
             --execute BCH_Alpha_Hunter_Engine_GitHub_Ready.ipynb \
-            --output BCH_Alpha_Hunter_Output.ipynb
+            --output BCH_Alpha_Hunter_Output.ipynb \
+            --ExecutePreprocessor.timeout=900
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4
@@ -36,4 +58,6 @@ jobs:
           path: |
             *.csv
             *.xlsx
+            *.json
+            *.html
             BCH_Alpha_Hunter_Output.ipynb
